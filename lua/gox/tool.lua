@@ -7,8 +7,6 @@
 --       self:executable_path()
 --
 -- Context (`opt`) fields (optional):
---   - storage_path: base directory for bin/tmp (default: stdpath("data") .. "/gox")
---   - alternate_tools: table mapping tool name -> absolute executable path
 
 local uv = vim.uv or vim.loop
 
@@ -108,13 +106,20 @@ local function system_run(cmd, args, env)
 	return nil, string.format("%s failed (code %d): %s", table.concat(full, " "), res.code, err)
 end
 
-function Tool.new(opt, version)
-	opt = opt or {}
-	if not opt.storage_path then
-		opt.storage_path = join(vim.fn.stdpath("data"), "gox")
-	end
-	mkdirp(opt.storage_path)
+local function resolve_bin(cmd)
+  if type(cmd) ~= "string" or cmd == "" then
+    return nil
+  end
+  return vim.fn.expand(cmd)
+end
 
+function Tool.new(external_opt, version)
+	external_opt = external_opt or {}
+	local opt = {
+		storage_path = join(vim.fn.stdpath("data"), "gox"),
+		bin = external_opt.bin or {},
+	}
+	mkdirp(opt.storage_path)
 	return setmetatable({
 		opt = opt,
 		version = version,
@@ -170,7 +175,7 @@ function Tool:executable_path()
 end
 
 function Tool:hash_path()
-	return join(self:install_dir(), "sha256.txt")
+	return join(self:install_dir(), "hash.txt")
 end
 
 function Tool:clear_install_dir()
@@ -209,7 +214,6 @@ function Tool:run(cmd, args, env_ext)
 		error(err)
 	end
 end
-
 
 function Tool:calc_hash()
 	local p = self:executable_path()
@@ -354,8 +358,8 @@ function Tool:install()
 end
 
 function Tool:resolve_path()
-	local alt = self.opt.alternate_tools and self.opt.alternate_tools[self.name]
-	if alt and alt ~= "" then
+	local alt = resolve_bin(self.opt.bin[self.name])
+	if alt then
 		return alt
 	end
 	if self:check() then

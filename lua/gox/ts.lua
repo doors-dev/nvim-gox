@@ -65,6 +65,7 @@ end
 
 function M.setup(opts)
 	M.enabled = vim.tbl_get(opts, "treesitter", "enabled") ~= false
+	local startGo = vim.tbl_get(opts, "treesitter", "start_go") == true
 	if not M.enabled then
 		return
 	end
@@ -75,9 +76,17 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd("FileType", {
 		pattern = "gox",
 		callback = function(e)
-			pcall(vim.treesitter.start, e.buf, "gox")
+			vim.treesitter.start(e.buf, "gox")
 		end,
 	})
+	if startGo then
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = "go",
+			callback = function(e)
+				vim.treesitter.start(e.buf, "go")
+			end,
+		})
+	end
 	M.health()
 end
 

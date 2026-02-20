@@ -107,10 +107,10 @@ local function system_run(cmd, args, env)
 end
 
 local function resolve_bin(cmd)
-  if type(cmd) ~= "string" or cmd == "" then
-    return nil
-  end
-  return vim.fn.expand(cmd)
+	if type(cmd) ~= "string" or cmd == "" then
+		return nil
+	end
+	return vim.fn.expand(cmd)
 end
 
 function Tool.new(external_opt, version)
@@ -370,7 +370,7 @@ end
 
 function Tool:ensure()
 	local p = self:resolve_path()
-	if not p == "" then
+	if p ~= "" then
 		return p
 	end
 

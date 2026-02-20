@@ -1,4 +1,6 @@
-local M = {}
+local M = {
+	attached_gox = false
+}
 
 local function register()
 	local parsers = require("nvim-treesitter.parsers")
@@ -41,6 +43,15 @@ function M.health(cb)
 	end
 	local installed = ts.get_installed()
 	local missing = collect_missing(installed)
+	if not M.attached_gox and not vim.tbl_contains(missing, "gox") then
+		M.attached_gox = true
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = "gox",
+			callback = function(e)
+				vim.treesitter.start(e.buf, "gox")
+			end,
+		})
+	end
 	if #missing == 0 then
 		if type(cb) == "function" then
 			cb()
@@ -72,12 +83,6 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd('User', {
 		pattern = 'TSUpdate',
 		callback = register
-	})
-	vim.api.nvim_create_autocmd("FileType", {
-		pattern = "gox",
-		callback = function(e)
-			vim.treesitter.start(e.buf, "gox")
-		end,
 	})
 	if startGo then
 		vim.api.nvim_create_autocmd("FileType", {

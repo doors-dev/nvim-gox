@@ -1,4 +1,4 @@
-# nvim-gox
+# GoX (Neovim)
 
 Neovim support for **GoX**: Tree-sitter highlighting and GoX language-server integration for completion, diagnostics, go-to-definition, and refactors across both `.gox` and `.go` buffers.
 
@@ -86,6 +86,6 @@ On startup, the plugin can run a health check that:
 
 ## Related projects
 
-- [GoX language server and library](https://github.com/doors-dev/gox)
-- [Tree-sitter grammar](https://github.com/doors-dev/tree-sitter-gox)
+- GoX language server and library: [https://github.com/doors-dev/gox](https://github.com/doors-dev/gox)
+- Tree-sitter grammar: [https://github.com/doors-dev/tree-sitter-gox](https://github.com/doors-dev/tree-sitter-gox)
 

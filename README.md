@@ -2,6 +2,8 @@
 
 Neovim support for **GoX**: Tree-sitter highlighting and GoX language-server integration for completion, diagnostics, go-to-definition, and refactors across both `.gox` and `.go` buffers.
 
+> Beta: This plugin is in beta. You may encounter bugs or incomplete behavior, and features/configuration may change between releases. Please share feedback and file issues on GitHub (include your GoX version and minimal repro steps).
+
 ## Features
 
 - **Filetype**

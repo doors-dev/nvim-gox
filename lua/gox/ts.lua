@@ -53,11 +53,11 @@ function M.health(cb)
 					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end
 				if M.fold then
-					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-					vim.wo.foldmethod = 'expr'
-					vim.wo.foldenable = true
-					vim.wo.foldlevel = 99
-					vim.wo.foldlevelstart = 99
+					vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					vim.wo[0][0].foldmethod = 'expr'
+					vim.wo[0][0].foldenable = true
+					vim.wo[0][0].foldlevel = 99
+					vim.wo[0][0].foldlevelstart = 99
 				end
 			end,
 		})
@@ -105,11 +105,11 @@ function M.setup(opts)
 					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end
 				if M.fold then
-					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-					vim.wo.foldmethod = 'expr'
-					vim.wo.foldenable = true
-					vim.wo.foldlevel = 99
-					vim.wo.foldlevelstart = 99
+					vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					vim.wo[0][0].foldmethod = 'expr'
+					vim.wo[0][0].foldenable = true
+					vim.wo[0][0].foldlevel = 99
+					vim.wo[0][0].foldlevelstart = 99
 				end
 			end,
 		})

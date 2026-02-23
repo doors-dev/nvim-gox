@@ -54,7 +54,7 @@ On startup, the plugin can run a health check that:
       treesitter = {
         -- enable Tree-sitter setup (default: true)
         enabled = true,
-        -- enable Tree-sitter folding (default: true)
+        -- enable Tree-sitter folding (default: false) UNSTABLE
         fold = true,
         -- enable Tree-sitter indent (default: true)
         indent = true,

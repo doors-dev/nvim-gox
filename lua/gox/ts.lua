@@ -87,7 +87,7 @@ end
 function M.setup(opts)
 	M.enabled = vim.tbl_get(opts, "treesitter", "enabled") ~= false
 	M.indent = vim.tbl_get(opts, "treesitter", "indent") ~= false
-	M.fold = vim.tbl_get(opts, "treesitter", "fold") ~= false
+	M.fold = vim.tbl_get(opts, "treesitter", "fold") == true
 	local startGo = vim.tbl_get(opts, "treesitter", "start_go") == true
 	if not M.enabled then
 		return

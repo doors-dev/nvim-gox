@@ -54,6 +54,10 @@ On startup, the plugin can run a health check that:
       treesitter = {
         -- enable Tree-sitter setup (default: true)
         enabled = true,
+        -- enable Tree-sitter folding (default: true)
+        fold = true,
+        -- enable Tree-sitter indent (default: true)
+        indent = true,
         -- attach Tree-sitter to .go files (default: false)
         -- enable if you don't already have Go highlighting configured
         start_go = true,

@@ -49,6 +49,16 @@ function M.health(cb)
 			pattern = "gox",
 			callback = function(e)
 				vim.treesitter.start(e.buf, "gox")
+				if M.indent then
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end
+				if M.fold then
+					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					vim.wo.foldmethod = 'expr'
+					vim.wo.foldenable = true
+					vim.wo.foldlevel = 99
+					vim.wo.foldlevelstart = 99
+				end
 			end,
 		})
 	end
@@ -76,6 +86,8 @@ end
 
 function M.setup(opts)
 	M.enabled = vim.tbl_get(opts, "treesitter", "enabled") ~= false
+	M.indent = vim.tbl_get(opts, "treesitter", "indent") ~= false
+	M.fold = vim.tbl_get(opts, "treesitter", "fold") ~= false
 	local startGo = vim.tbl_get(opts, "treesitter", "start_go") == true
 	if not M.enabled then
 		return
@@ -89,6 +101,16 @@ function M.setup(opts)
 			pattern = "go",
 			callback = function(e)
 				vim.treesitter.start(e.buf, "go")
+				if M.indent then
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end
+				if M.fold then
+					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					vim.wo.foldmethod = 'expr'
+					vim.wo.foldenable = true
+					vim.wo.foldlevel = 99
+					vim.wo.foldlevelstart = 99
+				end
 			end,
 		})
 	end

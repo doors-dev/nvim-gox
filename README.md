@@ -65,6 +65,13 @@ On startup, the plugin can run a health check that:
       lsp = {
         -- enable LSP setup (default: true)
         enabled = true,
+        -- optional GoX server logging
+        log = {
+          -- path to the GoX log file
+          file = "/tmp/nvim.gox.log",
+          -- log level passed to `gox srv -log.level`
+          level = "debug",
+        },
       },
       -- override binaries (defaults to ones installed in the plugin directory)
       bin = {
@@ -94,4 +101,3 @@ On startup, the plugin can run a health check that:
 
 - GoX language server and library: [https://github.com/doors-dev/gox](https://github.com/doors-dev/gox)
 - Tree-sitter grammar: [https://github.com/doors-dev/tree-sitter-gox](https://github.com/doors-dev/tree-sitter-gox)
-

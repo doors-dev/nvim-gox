@@ -2,6 +2,23 @@ local M = {
 	active = false,
 }
 
+local function cmd_args(opts, goxPath, goplsPath)
+	local cmd = { goxPath, "srv", "-gopls", goplsPath }
+	local logFile = vim.tbl_get(opts, "lsp", "log", "file")
+	local logLevel = vim.tbl_get(opts, "lsp", "log", "level")
+
+	if type(logFile) == "string" and logFile ~= "" then
+		table.insert(cmd, "-log")
+		table.insert(cmd, logFile)
+	end
+	if type(logLevel) == "string" and logLevel ~= "" then
+		table.insert(cmd, "-log.level")
+		table.insert(cmd, logLevel)
+	end
+
+	return cmd
+end
+
 function M.enabled()
 	return vim.tbl_get(M.opts, "lsp", "enabled") ~= false
 end
@@ -79,7 +96,7 @@ function M.health(cb, opts)
 			end,
 		})
 		vim.lsp.config('gox', {
-			cmd = { goxPath, "srv", "-gopls", goplsPath },
+			cmd = cmd_args(M.opts, goxPath, goplsPath),
 			filetypes = { "go", "gomod", "gowork", "gosum", "gox" },
 			root_markers = { "go.work", "go.mod", ".git" },
 		})

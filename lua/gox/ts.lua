@@ -33,7 +33,7 @@ function M.health(cb)
 		end
 		return
 	end
-	local ok, ts = pcall(require, "nvim-treesitter")
+	local ok = pcall(require, "nvim-treesitter")
 	if not ok then
 		vim.notify(
 			"GoX: nvim-treesitter is not installed. Install it or disable Tree-sitter in GoX config.",
@@ -41,7 +41,15 @@ function M.health(cb)
 		)
 		return
 	end
-	local installed = ts.get_installed()
+	local ok_cfg, cfg = pcall(require, "nvim-treesitter.config")
+	if not ok_cfg or cfg.get_installed == nil then
+		vim.notify(
+			"GoX: nvim-treesitter is too old or incompatible (missing config.get_installed). Update nvim-treesitter (main branch).",
+			vim.log.levels.WARN
+		)
+		return
+	end
+	local installed = cfg.get_installed("parsers")
 	local missing = collect_missing(installed)
 	if not M.attached_gox and not vim.tbl_contains(missing, "gox") then
 		M.attached_gox = true
@@ -50,7 +58,7 @@ function M.health(cb)
 			callback = function(e)
 				vim.treesitter.start(e.buf, "gox")
 				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter.indent'.get_indent(v:lnum)"
 				end
 				if M.fold then
 					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
@@ -70,7 +78,15 @@ function M.health(cb)
 	local msg = ("GoX: Missing required Tree-sitter parsers: %s. Install now?"):format(table.concat(missing, ", "))
 	vim.ui.select({ "Install", "Cancel" }, { prompt = msg }, function(choice)
 		if choice == "Install" then
-			ts.install(missing)
+			local ok_inst, inst = pcall(require, "nvim-treesitter.install")
+			if ok_inst and inst.install ~= nil then
+				inst.install(missing)
+			else
+				vim.notify(
+					"GoX: nvim-treesitter install module unavailable.",
+					vim.log.levels.WARN
+				)
+			end
 		else
 			vim.notify(
 				"GoX: Required Tree-sitter parsers were not installed. Tree-sitter features may be incomplete.",
@@ -85,12 +101,12 @@ end
 
 function M.setup(opts)
 	M.enabled = vim.tbl_get(opts, "treesitter", "enabled") ~= false
-	M.indent = vim.tbl_get(opts, "treesitter", "indent") ~= false
-	M.fold = vim.tbl_get(opts, "treesitter", "fold") == true
-	local startGo = vim.tbl_get(opts, "treesitter", "start_go") == true
 	if not M.enabled then
 		return
 	end
+	M.indent = vim.tbl_get(opts, "treesitter", "indent") ~= false
+	M.fold = vim.tbl_get(opts, "treesitter", "fold") ~= false
+	local startGo = vim.tbl_get(opts, "treesitter", "start_go") == true
 	vim.api.nvim_create_autocmd('User', {
 		pattern = 'TSUpdate',
 		callback = register
@@ -101,14 +117,13 @@ function M.setup(opts)
 			callback = function(e)
 				vim.treesitter.start(e.buf, "go")
 				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter.indent'.get_indent(v:lnum)"
 				end
 				if M.fold then
-					vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-					vim.wo[0][0].foldmethod = 'expr'
-					vim.wo[0][0].foldenable = true
-					vim.wo[0][0].foldlevel = 99
-					vim.wo[0][0].foldlevelstart = 99
+					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					vim.wo.foldmethod = 'expr'
+					vim.wo.foldenable = true
+					vim.wo.foldlevel = 99
 				end
 			end,
 		})

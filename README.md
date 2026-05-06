@@ -17,7 +17,6 @@ Neovim support for **GoX**: Tree-sitter highlighting and GoX language-server int
 
 - Neovim **0.11.0+**
 - `nvim-treesitter` on the **main** branch — used to install required parsers (archived 2026-04-03 but still works; remains recommended until Neovim core ships its own installer). If you prefer to manage Tree-sitter yourself, set `treesitter.enabled = false` in `setup()`.
-- `neovim/nvim-lspconfig`
 - `git`
 - `curl` or `wget` (Windows: PowerShell)
 - `tar` for `.tar.gz` archives (Windows: PowerShell)

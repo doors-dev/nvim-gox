@@ -1,4 +1,4 @@
 return {
-	gox = "v0.1.28",
-	gopls = "v0.21.1",
+	gox = "v0.1.32",
+	gopls = "v0.22.0",
 }

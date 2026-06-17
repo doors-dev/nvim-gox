@@ -3,11 +3,13 @@ local M = {
 }
 
 local function register()
+	local versions = require("gox.versions")
 	local parsers = require("nvim-treesitter.parsers")
 	parsers.gox = {
 		install_info = {
 			url = "https://github.com/doors-dev/tree-sitter-gox",
-			files = { "src/parser.c", "src/scanner.c" },
+			revision = versions.tree_sitter_gox,
+			generate = false,
 			queries = "queries",
 		},
 	}
@@ -58,7 +60,7 @@ function M.health(cb)
 			callback = function(e)
 				vim.treesitter.start(e.buf, "gox")
 				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter.indent'.get_indent(v:lnum)"
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end
 				if M.fold then
 					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
@@ -117,7 +119,7 @@ function M.setup(opts)
 			callback = function(e)
 				vim.treesitter.start(e.buf, "go")
 				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter.indent'.get_indent(v:lnum)"
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end
 				if M.fold then
 					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'

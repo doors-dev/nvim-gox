@@ -1,8 +1,4 @@
 local M = {}
-local function has_parser()
-	return #vim.api.nvim_get_runtime_file("parser/gox.*", false) > 0
-end
-
 function M.setup(opts)
 	opts = opts or {}
 	local ts = require("gox.ts")

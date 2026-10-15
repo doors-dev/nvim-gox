@@ -11,10 +11,10 @@ function Gopls.new(opt, version)
   return setmetatable(self, Gopls)
 end
 
-function Gopls:install()
-  local bin_dir = self:install_dir()
-  self:run("go", { "install", "golang.org/x/tools/gopls@" .. self.version }, {
-    GOBIN = bin_dir,
+function Gopls:install(dir)
+  local go = vim.fn.expand(self.opt.bin.go or "go")
+  self:run(go, { "install", "golang.org/x/tools/gopls@" .. self.version }, {
+    GOBIN = dir,
   })
 end
 

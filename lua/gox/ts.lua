@@ -1,6 +1,4 @@
-local M = {
-	attached_gox = false
-}
+local M = {}
 
 local function register()
 	local versions = require("gox.versions")
@@ -16,6 +14,23 @@ local function register()
 end
 
 local required = { "go", "html", "css", "javascript", "gox" }
+
+local function attach(buf, lang)
+	-- the parser may not be installed yet
+	if not pcall(vim.treesitter.start, buf, lang) then
+		return
+	end
+	if M.indent then
+		vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+	end
+	if M.fold then
+		-- [0][0]: this window and buffer only, not the window's later buffers
+		vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+		vim.wo[0][0].foldmethod = 'expr'
+		vim.wo[0][0].foldenable = true
+		vim.wo[0][0].foldlevel = 99
+	end
+end
 
 local function collect_missing(installed)
 	local missing = {}
@@ -41,6 +56,9 @@ function M.health(cb)
 			"GoX: nvim-treesitter is not installed. Install it or disable Tree-sitter in GoX config.",
 			vim.log.levels.WARN
 		)
+		if type(cb) == "function" then
+			cb()
+		end
 		return
 	end
 	local ok_cfg, cfg = pcall(require, "nvim-treesitter.config")
@@ -49,28 +67,13 @@ function M.health(cb)
 			"GoX: nvim-treesitter is too old or incompatible (missing config.get_installed). Update nvim-treesitter (main branch).",
 			vim.log.levels.WARN
 		)
+		if type(cb) == "function" then
+			cb()
+		end
 		return
 	end
 	local installed = cfg.get_installed("parsers")
 	local missing = collect_missing(installed)
-	if not M.attached_gox and not vim.tbl_contains(missing, "gox") then
-		M.attached_gox = true
-		vim.api.nvim_create_autocmd("FileType", {
-			pattern = "gox",
-			callback = function(e)
-				vim.treesitter.start(e.buf, "gox")
-				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-				end
-				if M.fold then
-					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-					vim.wo.foldmethod = 'expr'
-					vim.wo.foldenable = true
-					vim.wo.foldlevel = 99
-				end
-			end,
-		})
-	end
 	if #missing == 0 then
 		if type(cb) == "function" then
 			cb()
@@ -113,20 +116,18 @@ function M.setup(opts)
 		pattern = 'TSUpdate',
 		callback = register
 	})
+	-- always registered: parsers installed later in this session are picked up by the next buffer
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = "gox",
+		callback = function(e)
+			attach(e.buf, "gox")
+		end,
+	})
 	if startGo then
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = "go",
 			callback = function(e)
-				vim.treesitter.start(e.buf, "go")
-				if M.indent then
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-				end
-				if M.fold then
-					vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-					vim.wo.foldmethod = 'expr'
-					vim.wo.foldenable = true
-					vim.wo.foldlevel = 99
-				end
+				attach(e.buf, "go")
 			end,
 		})
 	end

@@ -19,6 +19,7 @@ local function is_windows()
 end
 
 local PATH_SEP = package.config:sub(1, 1)
+local STALE_VERSION_SEC = 7 * 24 * 60 * 60
 
 local function join(...)
 	if vim.fs and vim.fs.joinpath then
@@ -51,7 +52,13 @@ local function exists(p)
 end
 
 local function mkdirp(p)
-	vim.fn.mkdir(p, "p")
+	-- another Neovim may create it or a parent at the same time, which fails mkdir: try again
+	for _ = 1, 5 do
+		if pcall(vim.fn.mkdir, p, "p") or vim.fn.isdirectory(p) == 1 then
+			return
+		end
+	end
+	error("can't create directory " .. p)
 end
 
 local function rm_rf(p)
@@ -72,6 +79,16 @@ end
 local function write_file_text(p, text)
 	mkdirp(vim.fn.fnamemodify(p, ":h"))
 	vim.fn.writefile({ text }, p)
+end
+
+local function sha256_file(p)
+	local f = io.open(p, "rb")
+	if not f then
+		return nil
+	end
+	local data = f:read("*a")
+	f:close()
+	return vim.fn.sha256(data)
 end
 
 local function notify(msg, level)
@@ -123,6 +140,7 @@ function Tool.new(external_opt, version)
 	return setmetatable({
 		opt = opt,
 		version = version,
+		-- set while ensure() installs
 		_temp_dir = nil,
 		_bin_dir = nil,
 	}, Tool)
@@ -134,21 +152,6 @@ end
 
 function Tool:suffix()
 	return is_windows() and ".exe" or ""
-end
-
-function Tool:temp_dir()
-	if not self._temp_dir then
-		self._temp_dir = join(self.opt.storage_path, "tmp")
-		mkdirp(self._temp_dir)
-	end
-	return self._temp_dir
-end
-
-function Tool:clean_temp_dir()
-	local td = self:temp_dir()
-	if exists(td) then
-		rm_rf(td)
-	end
 end
 
 function Tool:bin_dir()
@@ -163,34 +166,16 @@ function Tool:install_dir()
 	return join(self:bin_dir(), self.name, self.version)
 end
 
-function Tool:ensure_install_dir()
-	local d = self:install_dir()
-	if not exists(d) then
-		mkdirp(d)
-	end
-end
-
 function Tool:executable_path()
 	return join(self:install_dir(), self.name .. self:suffix())
 end
 
 function Tool:hash_path()
-	return join(self:install_dir(), "hash.txt")
-end
-
-function Tool:clear_install_dir()
-	local d = self:install_dir()
-	if exists(d) then
-		rm_rf(d)
-	end
+	return join(self:install_dir(), "sha256.txt")
 end
 
 function Tool:read_hash()
 	return read_file_text(self:hash_path())
-end
-
-function Tool:write_hash(hash)
-	write_file_text(self:hash_path(), hash)
 end
 
 function Tool:make_executable(file_path)
@@ -215,26 +200,12 @@ function Tool:run(cmd, args, env_ext)
 	end
 end
 
-function Tool:calc_hash()
-	local p = self:executable_path()
-	if not exists(p) then
-		return nil
-	end
-	return vim.fn.system({
-		"git", "hash-object", "--no-filters", p
-	})
-end
-
 function Tool:check()
 	local expected = self:read_hash()
 	if not expected or expected == "" then
 		return false
 	end
-	local actual = self:calc_hash()
-	if not actual then
-		return false
-	end
-	return vim.trim(actual) == vim.trim(expected)
+	return sha256_file(self:executable_path()) == vim.trim(expected)
 end
 
 function Tool:clean_old()
@@ -255,14 +226,16 @@ function Tool:clean_old()
 			break
 		end
 		local p = join(tool_root, entry)
-		if realpath(p) ~= current then
+		local st = stat(p)
+		-- another Neovim may still run a recent version (missed if it has been open for longer than this)
+		if realpath(p) ~= current and st and os.time() - st.mtime.sec > STALE_VERSION_SEC then
 			rm_rf(p)
 		end
 	end
 end
 
 function Tool:download(url, filename)
-	local dest = join(self:temp_dir(), filename)
+	local dest = join(self._temp_dir, filename)
 	mkdirp(vim.fn.fnamemodify(dest, ":h"))
 
 	if vim.fn.executable("curl") == 1 then
@@ -309,6 +282,27 @@ Invoke-WebRequest -Uri '%s' -OutFile '%s' -Headers @{ Accept='application/octet-
 	error(self:msg("download failed: curl/wget not found"))
 end
 
+-- checks the file against the "<sha256>  <name>" list published at sums_url
+function Tool:verify_checksum(file, sums_url)
+	local name = vim.fs.basename(file)
+	local sums = read_file_text(self:download(sums_url, name .. ".sums")) or ""
+	local expected
+	for line in sums:gmatch("[^\r\n]+") do
+		local hash, n = line:match("^(%x+)%s+%*?(.-)%s*$")
+		if hash and #hash == 64 and n == name then
+			expected = hash:lower()
+			break
+		end
+	end
+	if not expected then
+		error(self:msg("no checksum for " .. name .. " in " .. sums_url), 0)
+	end
+	local actual = sha256_file(file)
+	if actual ~= expected then
+		error(self:msg(("checksum mismatch for %s: expected %s, got %s"):format(name, expected, tostring(actual))), 0)
+	end
+end
+
 function Tool:extract(archive_path, out_dir)
 	mkdirp(out_dir)
 
@@ -352,8 +346,8 @@ function Tool:extract(archive_path, out_dir)
 	error(self:msg("extraction failed: unsupported archive type"))
 end
 
--- Abstract: override in subclasses
-function Tool:install()
+-- Abstract: override in subclasses, place the executable in dir
+function Tool:install(dir)
 	error("Tool:install() must be implemented by subclass")
 end
 
@@ -363,6 +357,9 @@ function Tool:resolve_path()
 		return alt
 	end
 	if self:check() then
+		-- marks the version as in use, see clean_old
+		local now = os.time()
+		uv.fs_utime(self:install_dir(), now, now)
 		return self:executable_path()
 	end
 	return ""
@@ -376,28 +373,50 @@ function Tool:ensure()
 
 	notify(self:msg("installing " .. self.version .. " to " .. self:install_dir()), vim.log.levels.INFO)
 
-	self:clear_install_dir()
-	self:ensure_install_dir()
-
+	-- install into a directory of our own next to the versions, then move it into place:
+	-- another Neovim may run the same install. clean_old removes what an interrupted install left
+	local tool_root = join(self:bin_dir(), self.name)
+	mkdirp(tool_root)
+	local temp = assert(uv.fs_mkdtemp(join(tool_root, "tmp-XXXXXX")))
+	self._temp_dir = temp
 	local ok, err = pcall(function()
-		self:install()
+		local stage = join(temp, "stage")
+		mkdirp(stage)
+		self:install(stage)
+		local hash = sha256_file(join(stage, self.name .. self:suffix()))
+		if not hash then
+			error("binary not found after installation", 0)
+		end
+		write_file_text(join(stage, "sha256.txt"), hash)
+		self:move_into_place(stage)
 	end)
+	self._temp_dir = nil
+	rm_rf(temp)
 	if not ok then
-		local msg = (type(err) == "string" and err) or "unknown"
-		error(self:msg("installation failed: " .. msg))
+		error(self:msg("installation failed: " .. tostring(err)), 0)
 	end
 
-	local hash = self:calc_hash()
-	if not hash then
-		error(self:msg("binary not found after installation"))
-	end
-
-	self:write_hash(hash)
 	self:clean_old()
 
 	notify(self:msg("installed successfully"), vim.log.levels.INFO)
 
 	return self:executable_path()
+end
+
+function Tool:move_into_place(stage)
+	local dir = self:install_dir()
+	if uv.fs_rename(stage, dir) then
+		return
+	end
+	-- install dir exists: another Neovim got there first, or a broken leftover
+	if self:check() then
+		return
+	end
+	rm_rf(dir)
+	local ok, err = uv.fs_rename(stage, dir)
+	if not ok and not self:check() then
+		error(err, 0)
+	end
 end
 
 M.Tool = Tool

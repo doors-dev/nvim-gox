@@ -42,7 +42,7 @@ local function detect_cpu()
 	return nil
 end
 
-function Gox:install()
+function Gox:install(dir)
 	local os = detect_os()
 	local cpu = detect_cpu()
 
@@ -60,17 +60,12 @@ function Gox:install()
 	local ext = (os == "windows") and ".zip" or ".tar.gz"
 	local file_name = string.format("gox_%s_%s%s", os, cpu, ext)
 
-	local url = string.format(
-		"https://github.com/doors-dev/gox/releases/download/%s/%s",
-		self.version,
-		file_name
-	)
+	local release = string.format("https://github.com/doors-dev/gox/releases/download/%s/", self.version)
+	local archive = self:download(release .. file_name, file_name)
+	self:verify_checksum(archive, release .. "SHA256SUMS")
+	self:extract(archive, dir)
 
-	local archive = self:download(url, file_name)
-	self:extract(archive, self:install_dir())
-
-	self:make_executable(self:executable_path())
-	self:clean_temp_dir()
+	self:make_executable(vim.fs.joinpath(dir, self.name .. self:suffix()))
 end
 
 return Gox

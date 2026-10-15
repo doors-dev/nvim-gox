@@ -128,7 +128,14 @@ function M.health(cb, opts)
 			" not found. Configure bin.gopls, or install a compatible gopls into the GoX directory now?"
 		vim.ui.select({ "Install", "Cancel" }, { prompt = msg }, function(choice)
 			if choice == "Install" then
-				gopls:ensure()
+				local ok, err = pcall(gopls.ensure, gopls)
+				if not ok then
+					vim.notify("GoX: " .. tostring(err), vim.log.levels.ERROR)
+					if type(cb) == "function" then
+						cb()
+					end
+					return
+				end
 				M.health(cb, opts)
 				return
 			end
@@ -150,7 +157,14 @@ function M.health(cb, opts)
 			versions.gox .. " not found. Configure bin.gox, or install a compatible gox into the GoX directory now?"
 		vim.ui.select({ "Install", "Cancel" }, { prompt = msg }, function(choice)
 			if choice == "Install" then
-				gox:ensure()
+				local ok, err = pcall(gox.ensure, gox)
+				if not ok then
+					vim.notify("GoX: " .. tostring(err), vim.log.levels.ERROR)
+					if type(cb) == "function" then
+						cb()
+					end
+					return
+				end
 				M.health(cb, opts)
 				return
 			end

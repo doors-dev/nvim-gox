@@ -18,7 +18,6 @@ Neovim support for **GoX**: Tree-sitter highlighting and GoX language-server int
 - Neovim **0.12.0+**
 - `nvim-treesitter` on the **main** branch — used to install required parsers. If you prefer to manage Tree-sitter yourself, set `treesitter.enabled = false` in `setup()`.
 - [`tree-sitter-cli`](https://github.com/tree-sitter/tree-sitter/blob/master/crates/cli/README.md) **0.26.1+** (install via system package manager, not npm)
-- `git`
 - `curl` or `wget` (Windows: PowerShell)
 - `tar` for `.tar.gz` archives (Windows: PowerShell)
 - `go`
@@ -90,7 +89,7 @@ On startup, the plugin can run a health check that:
   - Disable your standalone `gopls` setup to avoid the message and duplicate configuration.
 
 - **GoX can’t download/install tools**
-  - Ensure you have: `git`, `curl`/`wget` (or PowerShell on Windows), and `tar`/`unzip` as appropriate.
+  - Ensure you have: `curl`/`wget` (or PowerShell on Windows), and `tar`/`unzip` as appropriate.
   - Alternatively, set `opts.bin.gox` / `opts.bin.gopls` to use your system binaries.
 
 - **Unsupported platform/arch for GoX release**

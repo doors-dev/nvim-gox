@@ -28,7 +28,7 @@ Neovim support for **GoX**: Tree-sitter highlighting and GoX language-server int
 
 On startup, the plugin can run a health check that:
 
-1. Ensures required Tree-sitter parsers are installed (unless disabled).
+1. Ensures required Tree-sitter parsers are installed and the `gox` parser matches the revision this plugin pins (unless disabled).
 2. Ensures `gox` and `gopls` are installed at the required versions (unless disabled or custom binaries are provided).
 3. Enables the parser and language server.
 

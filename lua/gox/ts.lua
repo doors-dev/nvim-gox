@@ -42,6 +42,36 @@ local function collect_missing(installed)
 	return missing
 end
 
+-- the gox parser nvim-treesitter installed earlier, if it is not the revision this plugin pins
+local function outdated_gox(cfg)
+	local f = io.open(vim.fs.joinpath(cfg.get_install_dir("parser-info"), "gox.revision"), "r")
+	if not f then
+		return nil
+	end
+	local have = vim.trim(f:read("*a") or "")
+	f:close()
+	local want = require("gox.versions").tree_sitter_gox
+	if have ~= "" and have ~= want then
+		return have
+	end
+end
+
+local function update_gox(have, cb)
+	local msg = ("GoX: Tree-sitter parser gox is at %s, GoX needs %s. Update now?"):format(
+		have:sub(1, 7),
+		require("gox.versions").tree_sitter_gox:sub(1, 7)
+	)
+	vim.ui.select({ "Update", "Cancel" }, { prompt = msg }, function(choice)
+		if choice == "Update" then
+			require("nvim-treesitter.install").update({ "gox" })
+		else
+			vim.notify("GoX: gox parser not updated. Run :TSUpdate gox to update it.", vim.log.levels.WARN)
+		end
+		if type(cb) == "function" then
+			cb()
+		end
+	end)
+end
 
 function M.health(cb)
 	if not M.enabled then
@@ -75,6 +105,11 @@ function M.health(cb)
 	local installed = cfg.get_installed("parsers")
 	local missing = collect_missing(installed)
 	if #missing == 0 then
+		local have = outdated_gox(cfg)
+		if have then
+			update_gox(have, cb)
+			return
+		end
 		if type(cb) == "function" then
 			cb()
 		end
